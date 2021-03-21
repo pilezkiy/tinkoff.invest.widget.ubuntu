@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=Tinkoff
+Comment=Tinkoff Launcher
+GenericName=Tinkoff Launcher
+Exec=/usr/bin/python3 ./ti_desktop.py
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Icon=./tinkoff_invest.icon.png
+StartupNotify=true
+
