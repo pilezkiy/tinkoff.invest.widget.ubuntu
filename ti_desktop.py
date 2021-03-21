@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import ti_config as cfg
+import ti
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
@@ -145,7 +146,7 @@ class TinkoffInvestDesktop(Gtk.Window):
             ###################################### profit
             clr="white"
             if item["profit"] <= 0:
-                clr = "red"
+                clr = "#888888"
             txt = self.formatPrice(item["profit"],item["profitCurrency"])
             lbl = self.getLabel(txt, "Play Regular 8", clr, Gtk.Align.END)
             portfolioProfitsBox.pack_start(lbl, True, True, 1)
@@ -237,92 +238,8 @@ class TinkoffInvestDesktop(Gtk.Window):
         cr.set_operator(cairo.OPERATOR_OVER)
 
     def get_portfolio(self):
-        portfolio = {"items":[],"USDRUB":0, "totalPortfolioSumRUB": 0, "totalPortfolioProfitRUB":0}
-        headers = {"Authorization": "Bearer " + cfg.tinkoffToken}
-        endpoint = "https://api-invest.tinkoff.ru/openapi";
-
-        resp = requests.get(endpoint + "/market/orderbook", {"figi":"BBG0013HGFT4", "depth":2}, headers=headers).json()
-        portfolio["USDRUB"] = resp["payload"]["lastPrice"];
-
-        currencies = {}
-        resp = requests.get(endpoint + "/market/currencies", {}, headers=headers).json()
-        if resp and resp["payload"] and resp["payload"]["instruments"]:
-            for v in resp["payload"]["instruments"]:
-                currency = v["ticker"][:3].upper();
-                currencies[currency] = v
-
-        response = requests.get(endpoint + "/portfolio", {}, headers=headers).json()
-        if response and response["payload"] and response["payload"]["positions"]:
-            for item in response["payload"]["positions"]:
-
-                if cfg.isFake :
-                    item["balance"] *= random.uniform(10,50)
-
-                itemValue = { 
-                    "ticker": item["ticker"],  
-                    "figi": item["figi"],  
-                    "balance": item["balance"],
-                    "name": item["name"],
-                    "price": item["averagePositionPrice"]["value"],
-                    "priceCurrency": item["averagePositionPrice"]["currency"],
-                    "totalPrice": item["balance"] * item["averagePositionPrice"]["value"] + item["expectedYield"]["value"],
-                    "profit": item["expectedYield"]["value"],
-                    "profitCurrency": item["expectedYield"]["currency"],
-                }
-
-                
-                if "figi" in item:
-                    resp = requests.get(endpoint + "/market/orderbook", {"figi":item["figi"], "depth":0}, headers=headers).json()
-                    if resp and ("status" in resp) and resp["status"].upper() == 'OK':
-                        itemValue["price"] = resp["payload"]["lastPrice"]
-                        itemValue["totalPrice"] = itemValue["balance"] * itemValue["price"]
-
-                if itemValue["ticker"] == 'USD000UTSTOM':
-                    portfolio["USDRUB"] = itemValue["price"]
-                    itemValue["ticker"] = 'USD'
-
-                portfolio["items"].append(itemValue)
-                
-        resp = requests.get(endpoint + "/portfolio/currencies", {}, headers=headers).json()
-        if resp and resp["payload"] and resp["payload"]["currencies"]:
-            for v in resp["payload"]["currencies"]:
-                if v["currency"] == 'USD' or v["balance"] <= 0:
-                    continue
-                itemValue = { \
-                    "ticker": v["currency"], \
-                    "balance": v["balance"], \
-                    "name": v["currency"], \
-                    "price": 1, \
-                    "priceCurrency": v["currency"], \
-                    "totalPrice": v["balance"], \
-                    "profit": 0, \
-                    "profitCurrency": v["currency"], \
-                }
-
-                portfolio["items"].append(itemValue)
-
-        for item in portfolio["items"]:
-            sum = item["totalPrice"]
-            if item["priceCurrency"] == 'USD':
-                sum = sum * portfolio["USDRUB"]
-            portfolio["totalPortfolioSumRUB"] += sum
-            item["totalPriceRUB"] = sum
-
-            profit = item["profit"]
-            if item["profitCurrency"] == 'USD':
-                profit = profit * portfolio["USDRUB"]
-            portfolio["totalPortfolioProfitRUB"] += profit
-            
-        for item in portfolio["items"]:
-            item["percent"] = 0
-            if item["totalPriceRUB"] > 0 and portfolio["totalPortfolioSumRUB"] > 0:
-                item["percent"] = (item["totalPriceRUB"]/portfolio["totalPortfolioSumRUB"]) * 100
-
-        portfolio["items"].sort(key = itemgetter('totalPriceRUB'), reverse = True)
-        
-        return portfolio
-
-
+        self.portfolio = ti.get_portfolio_calculated()
+        return self.portfolio
 
 def main():
 
