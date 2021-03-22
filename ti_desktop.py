@@ -24,6 +24,7 @@ class TinkoffInvestDesktop(Gtk.Window):
         self.portfolio = self.get_portfolio()
         self.setup()
         self.init_ui()
+        console.print("started...")
 
 
     def setup(self):
@@ -45,8 +46,13 @@ class TinkoffInvestDesktop(Gtk.Window):
         lbl = Gtk.Label()
         lbl.set_markup(text)
         fd = Pango.FontDescription(font)
-        lbl.modify_font(fd)
-        lbl.modify_fg(Gtk.StateFlags.NORMAL,Gdk.color_parse(color))
+        attrlist = Pango.AttrList()
+        attrlist.insert(Pango.attr_family_new(fd.get_family()))
+        attrlist.insert(Pango.attr_style_new(fd.get_style()))
+        attrlist.insert(Pango.attr_size_new(fd.get_size()))
+        fgColor = Gdk.color_parse(color)
+        attrlist.insert(Pango.attr_foreground_new(fgColor.red,fgColor.green,fgColor.blue))
+        lbl.set_attributes(attrlist)
         lbl.set_halign(align)
         return lbl
 
@@ -56,7 +62,6 @@ class TinkoffInvestDesktop(Gtk.Window):
         self.box.destroy()
         self.init_ui()
         #console.print("End update portfolio...")
-        pass
 
     def cb_drag_start(self, widget, event):
         self.drag =  True
@@ -70,7 +75,7 @@ class TinkoffInvestDesktop(Gtk.Window):
 
     def callback_close(self, event, data):
         Gtk.main_quit()
-        pass
+        console.print("closed")
 
     def init_ui(self):
         self.connect("draw", self.on_draw)
@@ -101,70 +106,64 @@ class TinkoffInvestDesktop(Gtk.Window):
 
         lbl_total = self.getLabel(self.formatPrice(portfolio["totalPortfolioSumRUB"],"RUB"),
             "Play Regular 20", "white", Gtk.Align.START)
-        summaryBox.pack_start(lbl_total, False, False, 5)
+        summaryBox.pack_start(lbl_total, False, False, 0)
 
         lbl_total = self.getLabel(self.formatPrice(portfolio["totalPortfolioProfitRUB"],"RUB"),
             "Play Regular 15", "#888888", Gtk.Align.START)
         summaryBox.pack_start(lbl_total, False, False, 5)
         
         self.box.pack_start(summaryBox, True, True, 0)
-
-        portfolioBox = Gtk.HBox()
-        portfolioTickersBox = Gtk.VBox()
-        portfolioNamesBox = Gtk.VBox()
-        portfolioBalancesBox = Gtk.VBox()
-        portfolioPricesBox = Gtk.VBox()
-        portfolioTotalsBox = Gtk.VBox()
-        portfolioProfitsBox = Gtk.VBox()
-        portfolioPercentsBox = Gtk.VBox()
-
+        
+        grid = Gtk.Grid()
+        grid.set_row_spacing(1)
+        grid.set_column_spacing(10)
+        yy = 1
         for item in portfolio["items"]:
-            
-            ###################################### ticker
-            lbl = self.getLabel(f"<span background=\"#fff\" foreground=\"#000000\"> {item['ticker']} </span>",
-                "Play Regular 8", "white", Gtk.Align.START)
-            portfolioTickersBox.pack_start(lbl, True, True, 1)
-            ###################################### name
+            xx = 1
+            #------------------------------------------------------ ticker
+            lbl = self.getLabel(f"<span background=\"#fff\"> {item['ticker']} </span>", "Play Regular 8", "black", Gtk.Align.START)
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ name
             lbl = self.getLabel("{}".format(html.escape(item['name'])), "Play Regular 8", "white", Gtk.Align.START)
-            portfolioNamesBox.pack_start(lbl, True, True, 1)
-            
-            ###################################### balance
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ balance
             txt = "{:,.0f}".format(item['balance']).replace(",","")
             lbl = self.getLabel(txt, "Play Regular 8", "white", Gtk.Align.END)
-            portfolioBalancesBox.pack_start(lbl, True, True, 1)
-            
-            ###################################### price
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ price
             txt = self.formatPrice(item["price"],item["priceCurrency"])
             lbl = self.getLabel(txt, "Play Regular 8", "white", Gtk.Align.END)
-            portfolioPricesBox.pack_start(lbl, True, True, 1)
-
-            ###################################### sum
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ totalPrice
             txt = self.formatPrice(item["totalPrice"],item["priceCurrency"])
             lbl = self.getLabel(txt, "Play Regular 8", "white", Gtk.Align.END)
-            portfolioTotalsBox.pack_start(lbl, True, True, 1)
-
-            ###################################### profit
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ profit
             clr="white"
             if item["profit"] <= 0:
                 clr = "#888888"
             txt = self.formatPrice(item["profit"],item["profitCurrency"])
             lbl = self.getLabel(txt, "Play Regular 8", clr, Gtk.Align.END)
-            portfolioProfitsBox.pack_start(lbl, True, True, 1)
-
-            ###################################### percents
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ percent
             txt = "{:,.2f}%".format(item['percent']).replace(",","")
             lbl = self.getLabel(txt, "Play Regular 8", "white", Gtk.Align.END)
-            portfolioPercentsBox.pack_start(lbl, True, True, 1)
+            grid.attach(lbl,xx,yy,1,1)
+            xx+=1
+            #------------------------------------------------------ 
+            yy+=1
 
-        portfolioBox.pack_start(portfolioTickersBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioNamesBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioBalancesBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioPricesBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioTotalsBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioProfitsBox, expand=True, fill=True, padding=5)
-        portfolioBox.pack_start(portfolioPercentsBox, expand=True, fill=True, padding=5)
 
-        self.box.pack_start(portfolioBox, expand=True, fill=True, padding=0)
+        self.box.pack_start(grid, expand=True, fill=True, padding=0)
+
+
+
 
         self.draw_piechart()
 
@@ -179,12 +178,12 @@ class TinkoffInvestDesktop(Gtk.Window):
 
         labels = []
         sizes = []
-        colors = ['#ffffff','#dddddd','#bbbbbb', '#999999', '#777777', '#555555']
+        colors = ['#ffffff','#eeeeee','#dddddd', '#cccccc', '#bbbbbb', '#aaaaaa','#999999', '#888888']
 
         i = 0
         other_percent = 0
         for item in self.portfolio["items"]:
-            if i<5:
+            if i<7:
                 labels.append(" " + item['ticker'] + " ") 
                 sizes.append(item['percent'])
             else:
